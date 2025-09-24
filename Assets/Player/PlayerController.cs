@@ -4,28 +4,29 @@ public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 5f;
     public float jumpForce = 7f;
+
     private Rigidbody2D rb;
     private float moveInput;
     private bool jumpRequested = false;
-
-    //キャラクターの向きを管理する変数を追加
     private bool isFacingRight = true;
 
-     //地面判定用の変数を追加
-    public Transform groundCheckPoint;     // 地面判定センサーの位置
-    public float groundCheckRadius = 0.2f; // 地面判定センサーの半径
-    public LayerMask groundLayer;          // 地面レイヤーを指定する変数
-    private bool isGrounded = false;               // 地面に接しているかどうかのフラグ
+    // --- 他のスクリプトと連携するための変数 ---
+    private PlayerAnimationController animator;
+    public GameState currentState = GameState.Playing;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<PlayerAnimationController>();
     }
     
     void Update()
     {
-        // 毎フレーム、地面に接しているかチェックする ---
-        isGrounded = Physics2D.OverlapCircle(groundCheckPoint.position, groundCheckRadius, groundLayer);
+        // プレイ中でなければ、以降の操作を一切受け付けない
+        if (currentState != GameState.Playing)
+        {
+            return;
+        }
 
         moveInput = Input.GetAxis("Horizontal");
 
@@ -41,7 +42,8 @@ public class PlayerController : MonoBehaviour
             Flip();
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        //jump
+        if (Input.GetButtonDown("Jump") && animator.IsGrounded())
         {
             jumpRequested = true;
         }
@@ -49,6 +51,12 @@ public class PlayerController : MonoBehaviour
     
     void FixedUpdate()
     {
+        // プレイ中でなければ、以降の操作を一切受け付けない
+        if (currentState != GameState.Playing)
+        {
+            return;
+        }
+        
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
         if (jumpRequested)
@@ -56,6 +64,11 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             jumpRequested = false;
         }
+    }
+
+    public void ChangeState(GameState newState)
+    {
+        currentState = newState;
     }
 
     //反転処理をまとめたメソッドを追加
